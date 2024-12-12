@@ -27,7 +27,7 @@ PrashuExportToolKit is a comprehensive Blender addon designed to streamline the 
 
 ## Installation
 
-1. Download the `Prashu_FBX_Export.py` file
+1. Download the `BreadcrumbsUnity-Export-ToolKit-Blender-Addon` file
 2. In Blender, go to Edit > Preferences > Add-ons
 3. Click "Install" and select the downloaded Python file
 4. Enable the addon by checking the box next to "PrashuExportToolKit"
