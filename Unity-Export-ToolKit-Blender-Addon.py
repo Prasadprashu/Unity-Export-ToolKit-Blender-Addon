@@ -1,7 +1,7 @@
 bl_info = {
     "name": "PrashuExportToolKit",
     "author": "Prashu_2129",
-    "version": (1, 6),
+    "version": (1, 7),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > PrashuExportToolKit",
     "description": "Comprehensive export tool for game engines with advanced options",
@@ -57,6 +57,9 @@ class EXPORT_PT_prashu_toolkit_panel(bpy.types.Panel):
             
             # Triangulation Option
             advanced_box.prop(context.scene, "prashu_triangulate", text="Triangulate Mesh")
+            
+            # Scale Normalization Option
+            advanced_box.prop(context.scene, "prashu_normalize_scale", text="Normalize Scale")
         
         # Export Button
         layout.operator("export_scene.prashu_export_toolkit", text="Export to Game Engine", icon='EXPORT')
@@ -85,6 +88,7 @@ class PrashuExportToolKitOperator(bpy.types.Operator):
         original_selected = context.selected_objects.copy()
         original_active = context.view_layer.objects.active
         original_rotations = {obj: obj.rotation_euler.copy() for obj in original_selected}
+        original_scales = {obj: obj.scale.copy() for obj in original_selected}
 
         if not original_selected:
             self.report({'INFO'}, "No objects selected for export")
@@ -108,64 +112,76 @@ class PrashuExportToolKitOperator(bpy.types.Operator):
         
         finally:
             # Restore original scene state
-            self.restore_scene_state(context, original_selected, original_rotations, original_active)
+            self.restore_scene_state(
+                context, 
+                original_selected, 
+                original_rotations, 
+                original_scales, 
+                original_active
+            )
         
         return {'FINISHED'}
 
-    def export_single_file(self, context, top_level_parents: List[bpy.types.Object], filepath: str, export_format: str):
+    def normalize_scales(self, objects_to_export):
+        """Normalize object scales to prevent near-zero scaling issues."""
+        for obj in objects_to_export:
+            if obj.type == 'MESH' and bpy.context.scene.prashu_normalize_scale:
+                # Round very small scale values to exactly 1.0
+                scale = obj.scale
+                corrected_scale = mathutils.Vector([
+                    1.0 if abs(s - 1.0) < 0.0001 else s 
+                    for s in scale
+                ])
+                if corrected_scale != scale:
+                    obj.scale = corrected_scale
+                    obj.update_tag()
+
+    def export_single_file(self, context, top_level_parents, filepath, export_format):
         """Export all selected objects as a single file."""
-        # Collect all objects in hierarchy
         objects_to_export = self.get_hierarchy_objects(top_level_parents)
         
-        # Prepare objects
         self.prepare_objects_for_export(context, objects_to_export)
         
-        # Select objects
         bpy.ops.object.select_all(action='DESELECT')
         for obj in objects_to_export:
             obj.select_set(True)
         
-        # Export
         self.perform_export(filepath, export_format, use_selection=True)
 
-    def export_batch(self, context, top_level_parents: List[bpy.types.Object], base_filepath: str, export_format: str):
+    def export_batch(self, context, top_level_parents, base_filepath, export_format):
         """Export each top-level object separately with its hierarchy."""
         export_dir = os.path.dirname(base_filepath)
         
         for parent in top_level_parents:
-            # Collect hierarchy for this parent
             objects_to_export = self.get_hierarchy_objects([parent])
             
-            # Prepare objects
             self.prepare_objects_for_export(context, objects_to_export)
             
-            # Select objects
             bpy.ops.object.select_all(action='DESELECT')
             for obj in objects_to_export:
                 obj.select_set(True)
             
-            # Construct batch filepath using just the object name
             batch_filepath = os.path.join(
                 export_dir, 
                 f"{parent.name}.{export_format.lower()}"
             )
             
-            # Export
             self.perform_export(batch_filepath, export_format, use_selection=True)
 
-    def perform_export(self, filepath: str, export_format: str, use_selection: bool = True):
+    def perform_export(self, filepath, export_format, use_selection=True):
         """Perform the actual export based on the chosen format."""
         if export_format == 'FBX':
             bpy.ops.export_scene.fbx(
                 filepath=filepath, 
-                apply_scale_options='FBX_SCALE_UNITS', 
+                apply_scale_options='FBX_SCALE_ALL', 
                 path_mode='COPY', 
                 embed_textures=True, 
                 use_selection=use_selection, 
                 bake_space_transform=True,
                 use_active_collection=False,
                 use_mesh_modifiers=bpy.context.scene.prashu_apply_modifiers,
-                global_scale=1.0
+                global_scale=1.0,
+                apply_unit_scale=True
             )
         elif export_format == 'OBJ':
             bpy.ops.export_scene.obj(
@@ -175,27 +191,25 @@ class PrashuExportToolKitOperator(bpy.types.Operator):
                 use_selection=use_selection
             )
 
-    def ensure_file_extension(self, filepath: str, export_format: str) -> str:
+    def ensure_file_extension(self, filepath, export_format):
         """Ensure the filepath has the correct file extension."""
         base, ext = os.path.splitext(filepath)
         correct_ext = f'.{export_format.lower()}'
         return base + correct_ext if not ext or ext.lower() != correct_ext else filepath
 
-    def restore_scene_state(self, context, original_selected: List[bpy.types.Object], 
-                             original_rotations: Dict[bpy.types.Object, mathutils.Euler], 
-                             original_active: bpy.types.Object):
+    def restore_scene_state(self, context, original_selected, original_rotations, original_scales, original_active):
         """Restore the original scene state after export."""
         bpy.ops.object.select_all(action='DESELECT')
         for obj in original_selected:
             obj.select_set(True)
             obj.rotation_euler = original_rotations[obj]
+            obj.scale = original_scales[obj]
         context.view_layer.objects.active = original_active
         
-        # Undo transformations
         bpy.ops.ed.undo_push(message="Undo Export")
         bpy.ops.ed.undo()
 
-    def get_hierarchy_objects(self, parent_objects: List[bpy.types.Object]) -> List[bpy.types.Object]:
+    def get_hierarchy_objects(self, parent_objects):
         """Recursively collect all objects in the hierarchy of given parent objects."""
         hierarchy_objects = []
         for parent in parent_objects:
@@ -211,8 +225,11 @@ class PrashuExportToolKitOperator(bpy.types.Operator):
         
         return hierarchy_objects
 
-    def prepare_objects_for_export(self, context, objects_to_export: List[bpy.types.Object]):
+    def prepare_objects_for_export(self, context, objects_to_export):
         """Prepare objects for export by applying modifiers, transformations, etc."""
+        # Normalize scales if option is enabled
+        self.normalize_scales(objects_to_export)
+        
         for obj in objects_to_export:
             if obj.type != 'MESH':
                 continue
@@ -301,6 +318,12 @@ def register():
         default=True
     )
     
+    bpy.types.Scene.prashu_normalize_scale = bpy.props.BoolProperty(
+        name="Normalize Scale",
+        description="Correct near-zero scaling issues for Unity export",
+        default=True
+    )
+    
     # Register classes
     bpy.utils.register_class(PrashuExportToolKitOperator)
     bpy.utils.register_class(EXPORT_PT_prashu_toolkit_panel)
@@ -316,6 +339,7 @@ def unregister():
     del bpy.types.Scene.prashu_apply_rotation
     del bpy.types.Scene.prashu_apply_scale
     del bpy.types.Scene.prashu_triangulate
+    del bpy.types.Scene.prashu_normalize_scale
     
     # Unregister classes
     bpy.utils.unregister_class(PrashuExportToolKitOperator)
