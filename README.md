@@ -1,9 +1,17 @@
-# PrashuExportToolKit Blender Addon
+# Prashu ExportToolKitPro - Blender Addon
 
 
 ## Overview
 
 PrashuExportToolKit is a comprehensive Blender addon designed to streamline the export process for 3D models to game engines. It provides advanced export options and flexibility for game asset preparation.
+
+## Author
+
+Prashu_2129
+
+## Version
+
+2.0
 
 ## Features
 
@@ -88,10 +96,4 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-## Author
 
-Prashu_2129
-
-## Version
-
-1.6
