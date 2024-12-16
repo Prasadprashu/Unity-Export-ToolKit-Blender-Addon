@@ -1,10 +1,10 @@
 bl_info = {
-    "name": "Prashu Unity Export ToolKit Pro",
+    "name": "Unity Export ToolKit Pro",
     "author": "Prashu_2129",
-    "version": (2, 0),
+    "version": (2, 3),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > Export",
-    "description": "Advanced export tool for Unity with comprehensive optimization",
+    "description": "Advanced export tool for Unity with comprehensive optimization and features",
     "warning": "",
     "wiki_url": "",
     "category": "Import-Export",
@@ -12,10 +12,9 @@ bl_info = {
 
 import bpy
 import os
-import math
-import mathutils
 import time
-from typing import List, Dict
+import subprocess
+import mathutils
 
 class EXPORT_PT_unity_toolkit_panel(bpy.types.Panel):
     bl_label = "Unity Export ToolKit Pro"
@@ -41,6 +40,19 @@ class EXPORT_PT_unity_toolkit_panel(bpy.types.Panel):
         row = box.row()
         row.prop(unity_props, "export_mode", text="Mode")
         
+        # Folder Selection for Batch Export
+        if unity_props.export_mode == 'BATCH':
+            box.prop(unity_props, "batch_export_folder", text="Export Folder")
+            if not unity_props.batch_export_folder:
+                box.label(text="Select a folder for batch export", icon='ERROR')
+        else:
+            # Single File Selection
+            box.prop(unity_props, "single_export_file", text="Export File")
+        
+        # Rig and Animation Options
+        box.prop(unity_props, "export_rig", text="Export Rig")
+        box.prop(unity_props, "export_animation", text="Export Animation")
+        
         # Advanced Options Dropdown
         box.prop(unity_props, "show_advanced_options", 
                  text="Advanced Options", 
@@ -59,11 +71,11 @@ class EXPORT_PT_unity_toolkit_panel(bpy.types.Panel):
             
             # Advanced Mesh Processing
             advanced_box.prop(unity_props, "triangulate", text="Triangulate Mesh")
-            advanced_box.prop(unity_props, "normalize_scale", text="Normalize Scale")
-            advanced_box.prop(unity_props, "correct_rotation", text="Correct Unity Rotation")
         
-        # Export Button
-        layout.operator("export_scene.unity_export_toolkit", text="Export to Unity", icon='EXPORT')
+        # Export and Open Folder Buttons
+        row = layout.row()
+        row.operator("export_scene.unity_export_toolkit", text="Export to Unity", icon='EXPORT')
+        row.operator("export_scene.open_export_folder", text="Open Export Folder", icon='FILE_FOLDER')
 
 class UnityExportToolkitProperties(bpy.types.PropertyGroup):
     export_format: bpy.props.EnumProperty(
@@ -86,9 +98,33 @@ class UnityExportToolkitProperties(bpy.types.PropertyGroup):
         default='SINGLE'
     )
     
+    batch_export_folder: bpy.props.StringProperty(
+        name="Batch Export Folder",
+        description="Folder to export batch files",
+        subtype='DIR_PATH'
+    )
+    
+    single_export_file: bpy.props.StringProperty(
+        name="Single Export File",
+        description="File path for single export",
+        subtype='FILE_PATH'
+    )
+    
     show_advanced_options: bpy.props.BoolProperty(
         name="Show Advanced Options",
         description="Toggle advanced export options",
+        default=False
+    )
+    
+    export_rig: bpy.props.BoolProperty(
+        name="Export Rig",
+        description="Include armature in export",
+        default=False
+    )
+    
+    export_animation: bpy.props.BoolProperty(
+        name="Export Animation",
+        description="Include animation in export",
         default=False
     )
     
@@ -116,25 +152,38 @@ class UnityExportToolkitProperties(bpy.types.PropertyGroup):
         name="Triangulate", 
         default=True
     )
+
+class OpenExportFolderOperator(bpy.types.Operator):
+    bl_idname = "export_scene.open_export_folder"
+    bl_label = "Open Export Folder"
     
-    normalize_scale: bpy.props.BoolProperty(
-        name="Normalize Scale",
-        description="Correct near-zero scaling issues for Unity export",
-        default=True
-    )
-    
-    correct_rotation: bpy.props.BoolProperty(
-        name="Auto-Correct Unity Rotation",
-        description="Automatically adjust rotation for Unity compatibility",
-        default=True
-    )
+    def execute(self, context):
+        unity_props = context.scene.unity_export_props
+        
+        if unity_props.export_mode == 'SINGLE':
+            filepath = unity_props.single_export_file
+            folder_path = os.path.dirname(filepath) if filepath else None
+        else:
+            folder_path = unity_props.batch_export_folder
+        
+        if folder_path and os.path.exists(folder_path):
+            # Cross-platform file browser opening
+            if os.name == 'nt':  # Windows
+                os.startfile(folder_path)
+            elif os.name == 'posix':  # macOS and Linux
+                if bpy.system == 'Darwin':  # macOS
+                    subprocess.Popen(['open', folder_path])
+                else:  # Linux
+                    subprocess.Popen(['xdg-open', folder_path])
+        else:
+            self.report({'ERROR'}, "Export folder not set or does not exist")
+        
+        return {'FINISHED'}
 
 class UnityExportToolKitOperator(bpy.types.Operator):
     bl_idname = "export_scene.unity_export_toolkit"
     bl_label = "Unity Export ToolKit Pro"
     bl_options = {'REGISTER', 'UNDO'}
-    
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
 
     def execute(self, context):
         start_time = time.time()
@@ -145,12 +194,16 @@ class UnityExportToolKitOperator(bpy.types.Operator):
         export_mode = unity_props.export_mode
         
         # Validate export path
-        if not self.filepath:
-            self.report({'ERROR'}, "Export path not selected")
-            return {'CANCELLED'}
-        
-        # Ensure correct file extension
-        filepath = self.ensure_file_extension(self.filepath, export_format)
+        if export_mode == 'SINGLE':
+            if not unity_props.single_export_file:
+                self.report({'ERROR'}, "Select a file for export")
+                return {'CANCELLED'}
+            filepath = self.ensure_file_extension(unity_props.single_export_file, export_format)
+        else:  # BATCH mode
+            if not unity_props.batch_export_folder:
+                self.report({'ERROR'}, "Select a folder for batch export")
+                return {'CANCELLED'}
+            filepath = unity_props.batch_export_folder
         
         # Store original scene state
         original_selected = context.selected_objects.copy()
@@ -191,44 +244,6 @@ class UnityExportToolKitOperator(bpy.types.Operator):
         
         return {'FINISHED'}
 
-    def normalize_scales(self, objects_to_export, unity_props):
-        """Normalize object scales to prevent near-zero scaling issues."""
-        for obj in objects_to_export:
-            if obj.type == 'MESH' and unity_props.normalize_scale:
-                # Round very small scale values to exactly 1.0
-                scale = obj.scale
-                corrected_scale = mathutils.Vector([
-                    1.0 if abs(s - 1.0) < 0.0001 else s 
-                    for s in scale
-                ])
-                if corrected_scale != scale:
-                    obj.scale = corrected_scale
-                    obj.update_tag()
-
-    def correct_unity_rotation(self, objects_to_export, unity_props):
-        """Correct rotation for Unity compatibility."""
-        if not unity_props.correct_rotation:
-            return
-        
-        for obj in objects_to_export:
-            if obj.type == 'MESH':
-                # Set X rotation exactly to -90 degrees, not 89.98
-                # First store the current local rotation
-                local_rotation = obj.rotation_euler.copy()
-                
-                # Reset rotation to precise -90 degrees around X
-                obj.rotation_euler.x = math.radians(-90)
-                
-                # If the object has a parent, we need to handle its local rotation carefully
-                if obj.parent:
-                    # Apply the rotation while preserving world space
-                    obj.update_tag()
-                    bpy.context.view_layer.update()
-                
-                # Restore other rotation axes to maintain overall orientation
-                obj.rotation_euler.y = local_rotation.y
-                obj.rotation_euler.z = local_rotation.z
-
     def export_single_file(self, context, top_level_parents, filepath, export_format):
         """Export all selected objects as a single file."""
         unity_props = context.scene.unity_export_props
@@ -242,10 +257,9 @@ class UnityExportToolKitOperator(bpy.types.Operator):
         
         self.perform_export(filepath, export_format, unity_props, use_selection=True)
 
-    def export_batch(self, context, top_level_parents, base_filepath, export_format):
+    def export_batch(self, context, top_level_parents, export_dir, export_format):
         """Export each top-level object separately with its hierarchy."""
         unity_props = context.scene.unity_export_props
-        export_dir = os.path.dirname(base_filepath)
         os.makedirs(export_dir, exist_ok=True)
         
         for parent in top_level_parents:
@@ -270,7 +284,7 @@ class UnityExportToolKitOperator(bpy.types.Operator):
             bpy.ops.export_scene.fbx(
                 filepath=filepath, 
                 apply_scale_options='FBX_SCALE_ALL', 
-                path_mode='AUTO',  # More flexible path handling
+                path_mode='AUTO',  
                 embed_textures=True, 
                 use_selection=use_selection, 
                 bake_space_transform=True,
@@ -278,9 +292,15 @@ class UnityExportToolKitOperator(bpy.types.Operator):
                 use_mesh_modifiers=unity_props.apply_modifiers,
                 global_scale=1.0,
                 apply_unit_scale=True,
-                use_mesh_edges=False,     # Optimizations
-                axis_forward='-Z',        # Better Unity compatibility
-                axis_up='Y'               # Standard Unity axis orientation
+                use_mesh_edges=False,     
+                axis_forward='-Z',        
+                axis_up='Y',
+                # New options for rig and animation export
+                add_leaf_bones=False,
+                bake_anim_use_all_bones=unity_props.export_animation,
+                bake_anim_step=1,
+                bake_anim_simplify_factor=1.0,
+                use_armature_deform_only=not unity_props.export_rig
             )
         elif export_format == 'OBJ':
             bpy.ops.export_scene.obj(
@@ -324,7 +344,7 @@ class UnityExportToolKitOperator(bpy.types.Operator):
             processed_objects.add(obj)
             hierarchy_objects.append(obj)
             
-            for child in obj.children:
+            for child in obj.children_recursive:  # Use children_recursive to capture all descendants
                 collect_hierarchy(child)
         
         for parent in parent_objects:
@@ -334,29 +354,25 @@ class UnityExportToolKitOperator(bpy.types.Operator):
 
     def prepare_objects_for_export(self, context, objects_to_export, unity_props):
         """Prepare objects for export by applying modifiers, transformations, etc."""
-        # Normalize scales if option is enabled
-        self.normalize_scales(objects_to_export, unity_props)
-        self.correct_unity_rotation(objects_to_export, unity_props)
-        
         for obj in objects_to_export:
-            if obj.type != 'MESH':
+            if obj.type not in ['MESH', 'ARMATURE']:
                 continue
             
             context.view_layer.objects.active = obj
             obj.select_set(True)
             
             # Apply modifiers
-            if unity_props.apply_modifiers:
+            if unity_props.apply_modifiers and obj.type == 'MESH':
                 bpy.ops.object.convert(target='MESH')
             
             # Triangulate
-            if unity_props.triangulate:
+            if unity_props.triangulate and obj.type == 'MESH':
                 bpy.ops.object.mode_set(mode='EDIT')
                 bpy.ops.mesh.select_all(action='SELECT')
                 bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
                 bpy.ops.object.mode_set(mode='OBJECT')
             
-            # Apply transformations
+            # Apply transformations (now also applied to great-grandchildren)
             bpy.ops.object.transform_apply(
                 location=unity_props.apply_location, 
                 rotation=unity_props.apply_rotation, 
@@ -367,13 +383,9 @@ class UnityExportToolKitOperator(bpy.types.Operator):
         
         context.view_layer.objects.active = None
 
-    def invoke(self, context, event):
-        """Invoke file browser for export path selection."""
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
 def register():
     """Register classes and properties for the addon."""
+
     # Register the custom property group
     bpy.utils.register_class(UnityExportToolkitProperties)
     
@@ -383,12 +395,14 @@ def register():
     # Register classes
     bpy.utils.register_class(UnityExportToolKitOperator)
     bpy.utils.register_class(EXPORT_PT_unity_toolkit_panel)
+    bpy.utils.register_class(OpenExportFolderOperator)
     
 def unregister():
     """Unregister classes and properties for the addon."""
     # Unregister classes
     bpy.utils.unregister_class(UnityExportToolKitOperator)
     bpy.utils.unregister_class(EXPORT_PT_unity_toolkit_panel)
+    bpy.utils.unregister_class(OpenExportFolderOperator)
     
     # Remove the property group from the scene
     del bpy.types.Scene.unity_export_props
