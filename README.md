@@ -1,99 +1,98 @@
-# Prashu ExportToolKitPro - Blender Addon
-
+# Prashu Blender Unity Export ToolKit Pro 🚀
 
 ## Overview
 
-PrashuExportToolKit is a comprehensive Blender addon designed to streamline the export process for 3D models to game engines. It provides advanced export options and flexibility for game asset preparation.
+Unity Export ToolKit Pro is an advanced Blender addon designed to streamline and optimize the export process for Unity game development. This powerful tool provides comprehensive export options, making it easier to transfer 3D assets from Blender to Unity with enhanced control and flexibility.
 
-## Author
+## 🌟 Features
 
-Prashu_2129
+### Export Modes
+- **Single File Export**: Export all selected objects in one file
+- **Batch Export**: Export each object separately with its hierarchy
 
-## Version
+### Export Formats
+- FBX
+- OBJ (coming soon)
 
-2.0
+### Advanced Export Options
+- Modifier Application
+- Transform Handling
+  - Apply Location
+  - Apply Rotation
+  - Apply Scale
+- Mesh Triangulation
+- Rig Export
+- Animation Export
 
-## Features
+### Unique Capabilities
+- Recursive Hierarchy Preservation
+- Cross-Platform Export Support
+- Open Export Folder Directly from Blender
 
-- Multiple Export Formats
-  - FBX export
-  - OBJ export
-- Export Modes
-  - Single File Export: Export all selected objects in one file
-  - Batch Export: Export each top-level object separately with its hierarchy
-- Advanced Export Options
-  - Modifier Application
-  - Transformation Controls
-    - Optional location application
-    - Optional rotation application
-    - Optional scale application
-  - Mesh Triangulation
+## 🔧 Installation
 
-## Compatibility
-
-- Blender Version: 4.0.0+
-
-## Installation
-
-1. Download the `Unity-Export-ToolKit-Blender-Addon` file
+1. Download the latest release
 2. In Blender, go to Edit > Preferences > Add-ons
-3. Click "Install" and select the downloaded Python file
-4. Enable the addon by checking the box next to "PrashuExportToolKit"
+3. Click "Install" and select the downloaded addon file
+4. Enable the "Unity Export ToolKit Pro" addon
 
-## Usage
+## 💻 Usage
 
 ### Export Panel Location
-The export tools can be found in:
-- 3D Viewport
-- Sidebar (press 'N' to open)
-- Tab: Export
+- View3D > Sidebar > Export Tab
 
-### Export Settings
+### Export Workflow
+1. Select objects for export
+2. Choose export mode (Single/Batch)
+3. Select export format
+4. Configure advanced options
+5. Click "Export to Unity"
 
-1. **Export Format**
-   - Choose between FBX and OBJ formats
-   
-2. **Export Mode**
-   - Single File: Export all selected objects in one file
-   - Batch Export: Export each top-level object separately
+### Optional: Open Export Folder
+- Use the "Open Export Folder" button to quickly access exported files
 
-3. **Advanced Options**
-   - Apply Modifiers: Convert objects to mesh with current modifiers
-   - Transformation Options:
-     - Apply Location
-     - Apply Rotation
-     - Apply Scale
-   - Triangulate Mesh: Convert quads to triangles for better game engine compatibility
+## 🎛️ Export Settings
 
-### Export Process
+### General Settings
+- **Export Format**: FBX or OBJ
+- **Export Mode**: Single File or Batch Export
 
-1. Select the objects you want to export
-2. Open the PrashuExportToolKit panel
-3. Configure your export settings
-4. Click "Export to Game Engine"
-5. Choose your export location in the file browser
+### Advanced Options
+- **Apply Modifiers**: Applies object modifiers before export
+- **Transform Application**:
+  - Location
+  - Rotation
+  - Scale
+- **Triangulate Mesh**: Converts quads to triangles for better Unity compatibility
 
-## Known Limitations
+### Rig and Animation
+- **Export Rig**: Include armature in export
+- **Export Animation**: Include animation data
 
-- Works best with mesh objects
-- Hierarchy preservation depends on object selection
-- Some complex modifier stacks might require manual intervention
+## 🚀 Optimization Tips
+- Always apply modifiers for clean exports
+- Use triangulation for consistent mesh rendering
+- Check "Apply Rotation/Scale" for consistent Unity transformations
 
-## Contributing
+## 🤝 Compatibility
+- Blender 4.0.0+
+- Unity (All recent versions)
 
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
+## 📋 Roadmap
+- [ ] Texture Export Support
+- [ ] More Export Formats
+- [ ] Enhanced Animation Baking
+- [ ] Preset Save/Load
 
-## License
+## 🐛 Reporting Issues
+Please report any bugs or feature requests on our [GitHub Issues](https://github.com/yourusername/UnityExportToolKitPro/issues) page.
 
-This PrashuExportToolKit Blender addon is licensed under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+## 📜 License
+[Insert License Type - e.g., MIT License]
 
-Copyright (C) 2  Prashu_Ammu_2129
+## 🙌 Contributing
+Contributions are welcome! Please read our contributing guidelines before submitting a pull request.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+---
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-
-
+**Created by Prashu_2129**
